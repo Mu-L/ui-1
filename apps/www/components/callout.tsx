@@ -1,31 +1,22 @@
 import { cn } from "@/lib/utils"
-
-interface CalloutProps {
-  icon?: string
-  children?: React.ReactNode
-  type?: "default" | "warning" | "danger"
-}
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/registry/new-york/ui/alert"
 
 export function Callout({
+  title,
   children,
   icon,
-  type = "default",
+  className,
   ...props
-}: CalloutProps) {
+}: React.ComponentProps<typeof Alert> & { icon?: string }) {
   return (
-    <div
-      className={cn(
-        "my-6 flex items-start rounded-md border border-b-4 border-slate-900 p-4",
-        {
-          "border-slate-900 dark:border-slate-700": type === "default",
-          "border-red-500": type === "danger",
-          "border-yellow-500": type === "warning",
-        }
-      )}
-      {...props}
-    >
+    <Alert className={cn("bg-muted/50", className)} {...props}>
       {icon && <span className="mr-4 text-2xl">{icon}</span>}
-      <div>{children}</div>
-    </div>
+      {title && <AlertTitle>{title}</AlertTitle>}
+      <AlertDescription>{children}</AlertDescription>
+    </Alert>
   )
 }

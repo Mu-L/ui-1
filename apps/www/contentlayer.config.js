@@ -1,15 +1,14 @@
-import path from "path"
+import { getHighlighter } from "@shikijs/compat"
 import {
   defineDocumentType,
   defineNestedType,
   makeSource,
-} from "contentlayer/source-files"
+} from "contentlayer2/source-files"
 import rehypeAutolinkHeadings from "rehype-autolink-headings"
 import rehypePrettyCode from "rehype-pretty-code"
 import rehypeSlug from "rehype-slug"
 import { codeImport } from "remark-code-import"
 import remarkGfm from "remark-gfm"
-import { getHighlighter, loadTheme } from "shiki"
 import { visit } from "unist-util-visit"
 
 import { rehypeComponent } from "./lib/rehype-component"
@@ -27,10 +26,10 @@ const computedFields = {
   },
 }
 
-const RadixProperties = defineNestedType(() => ({
-  name: "RadixProperties",
+const LinksProperties = defineNestedType(() => ({
+  name: "LinksProperties",
   fields: {
-    link: {
+    doc: {
       type: "string",
     },
     api: {
@@ -56,9 +55,9 @@ export const Doc = defineDocumentType(() => ({
       type: "boolean",
       default: true,
     },
-    radix: {
+    links: {
       type: "nested",
-      of: RadixProperties,
+      of: LinksProperties,
     },
     featured: {
       type: "boolean",
@@ -68,6 +67,11 @@ export const Doc = defineDocumentType(() => ({
     component: {
       type: "boolean",
       default: false,
+      required: false,
+    },
+    toc: {
+      type: "boolean",
+      default: true,
       required: false,
     },
   },
@@ -90,20 +94,27 @@ export default makeSource({
               return
             }
 
+            if (codeEl.data?.meta) {
+              // Extract event from meta and pass it down the tree.
+              const regex = /event="([^"]*)"/
+              const match = codeEl.data?.meta.match(regex)
+              if (match) {
+                node.__event__ = match ? match[1] : null
+                codeEl.data.meta = codeEl.data.meta.replace(regex, "")
+              }
+            }
+
             node.__rawString__ = codeEl.children?.[0].value
             node.__src__ = node.properties?.__src__
+            node.__style__ = node.properties?.__style__
           }
         })
       },
       [
         rehypePrettyCode,
         {
-          getHighlighter: async () => {
-            const theme = await loadTheme(
-              path.join(process.cwd(), "lib/vscode-theme.json")
-            )
-            return await getHighlighter({ theme })
-          },
+          theme: "github-dark",
+          getHighlighter,
           onVisitLine(node) {
             // Prevent lines from collapsing in `display: grid` mode, and allow empty
             // lines to be copy/pasted
@@ -137,6 +148,14 @@ export default makeSource({
 
             if (node.__src__) {
               preElement.properties["__src__"] = node.__src__
+            }
+
+            if (node.__event__) {
+              preElement.properties["__event__"] = node.__event__
+            }
+
+            if (node.__style__) {
+              preElement.properties["__style__"] = node.__style__
             }
           }
         })
